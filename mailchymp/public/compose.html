@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Login – Mailchymp</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      :root {
+        --ink: #111827;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --orange: #ff7a00;
+        --orange2: #ffb26b;
+        --shadow: 0 14px 40px rgba(0, 0, 0, 0.1);
+        --r: 18px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 600px at 0% 0%, #fff7ed, transparent 60%),
+          radial-gradient(
+            1000px 600px at 100% 0%,
+            rgba(255, 122, 0, 0.14),
+            transparent 55%
+          ),
+          linear-gradient(180deg, #fff, #fff);
+      }
+      .card {
+        width: min(560px, 100%);
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        padding: 16px;
+      }
+      .brand {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--orange), var(--orange2));
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 900;
+        box-shadow: 0 10px 20px rgba(255, 122, 0, 0.25);
+      }
+      h1 {
+        margin: 0;
+        font-size: 18px;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin: 12px 0;
+      }
+      .tab {
+        flex: 1;
+        padding: 10px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #fff;
+        font-weight: 900;
+        cursor: pointer;
+      }
+      .tab.active {
+        border: 0;
+        color: #fff;
+        background: linear-gradient(135deg, var(--orange), var(--orange2));
+        box-shadow: 0 12px 22px rgba(255, 122, 0, 0.22);
+      }
+      label {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 900;
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        outline: none;
+        font-size: 14px;
+      }
+      input:focus {
+        border-color: rgba(255, 122, 0, 0.45);
+        box-shadow: 0 0 0 4px rgba(255, 122, 0, 0.12);
+      }
+      .row {
+        display: grid;
+        gap: 8px;
+        margin: 10px 0;
+      }
+      .btn {
+        width: 100%;
+        border: 0;
+        border-radius: 12px;
+        padding: 12px;
+        font-weight: 900;
+        cursor: pointer;
+        transition: transform 0.05s ease;
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+      .btn.primary {
+        background: linear-gradient(135deg, var(--orange), var(--orange2));
+        color: #fff;
+        box-shadow: 0 12px 22px rgba(255, 122, 0, 0.22);
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .inline {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      a {
+        color: var(--orange);
+        text-decoration: none;
+        font-weight: 900;
+        font-size: 13px;
+      }
+      .toast {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 9999;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        color: #d1fae5;
+        padding: 12px;
+        border-radius: 14px;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+        display: none;
+        max-width: min(380px, calc(100vw - 32px));
+        backdrop-filter: blur(8px);
+      }
+      .toast.show {
+        display: block;
+      }
+      .toast.bad {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.35);
+        color: #fee2e2;
+      }
+      .toast .r {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .toast .x {
+        margin-left: auto;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font-weight: 900;
+        cursor: pointer;
+        font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="brand">
+        <div class="logo">M</div>
+        <div>
+          <h1>Mailchymp</h1>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" id="tabLogin" type="button">Login</button>
+        <button class="tab" id="tabReg" type="button">Register</button>
+      </div>
+
+      <div id="panelLogin">
+        <div class="row">
+          <label>Email</label>
+          <input
+            id="loginEmail"
+            placeholder="email@domain.com"
+            autocomplete="email"
+          />
+        </div>
+        <div class="row">
+          <label>Password</label>
+          <input
+            id="loginPass"
+            type="password"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+        </div>
+
+        <div class="inline">
+          <label
+            style="
+              display: flex;
+              gap: 8px;
+              align-items: center;
+              font-size: 13px;
+              color: var(--muted);
+              font-weight: 800;
+            "
+          >
+            <input type="checkbox" id="rememberMe" />
+            Remember me
+          </label>
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="btnLogin" type="button">Login</button>
+        </div>
+
+        <div class="row">
+          <div
+            id="googleBtn"
+            style="display: flex; justify-content: center"
+          ></div>
+        </div>
+      </div>
+
+      <div id="panelReg" style="display: none">
+        <div class="row">
+          <label>Name</label>
+          <input id="regName" placeholder="Your name" autocomplete="name" />
+        </div>
+        <div class="row">
+          <label>Email</label>
+          <input
+            id="regEmail"
+            placeholder="email@domain.com"
+            autocomplete="email"
+          />
+        </div>
+        <div class="row">
+          <label>Password (>=6 chars)</label>
+          <input
+            id="regPass"
+            type="password"
+            placeholder="••••••••"
+            autocomplete="new-password"
+          />
+        </div>
+        <div class="row">
+          <button class="btn primary" id="btnReg" type="button">
+            Create account
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite">
+      <div class="r">
+        <div id="toastText"></div>
+        <button class="x" id="toastX" type="button">×</button>
+      </div>
+    </div>
+
+    <script>
+      // SAME-ORIGIN API (avoid CORS/cookie host mismatch)
+      const toast = document.getElementById("toast"),
+        toastText = document.getElementById("toastText"),
+        toastX = document.getElementById("toastX");
+      let toastTimer = null;
+
+      function showToast(text, type = "ok", ms = 2500) {
+        toastText.textContent = text;
+        toast.classList.toggle("bad", type === "bad");
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove("show"), ms);
+      }
+      toastX.onclick = () => {
+        toast.classList.remove("show");
+        clearTimeout(toastTimer);
+      };
+
+      async function api(path, options = {}) {
+        const r = await fetch(path, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+          },
+          credentials: "include",
+        });
+        const data = await r.json().catch(() => null);
+        if (!r.ok) throw new Error(data?.message || `HTTP ${r.status}`);
+        return data;
+      }
+
+      const tabLogin = document.getElementById("tabLogin");
+      const tabReg = document.getElementById("tabReg");
+      const panelLogin = document.getElementById("panelLogin");
+      const panelReg = document.getElementById("panelReg");
+
+      tabLogin.onclick = () => {
+        tabLogin.classList.add("active");
+        tabReg.classList.remove("active");
+        panelLogin.style.display = "block";
+        panelReg.style.display = "none";
+      };
+      tabReg.onclick = () => {
+        tabReg.classList.add("active");
+        tabLogin.classList.remove("active");
+        panelReg.style.display = "block";
+        panelLogin.style.display = "none";
+      };
+
+      // Auto redirect if already logged in
+      (async () => {
+        try {
+          const me = await api("/api/auth/me");
+          if (me.user) location.href = "eblast.html";
+        } catch {}
+      })();
+
+      async function doLogin() {
+        const email = document
+          .getElementById("loginEmail")
+          .value.trim()
+          .toLowerCase();
+        const password = document.getElementById("loginPass").value;
+        const remember = document.getElementById("rememberMe").checked;
+        if (!email || !password)
+          return showToast("Missing email/password", "bad", 2200);
+
+        await api("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ email, password, remember }),
+        });
+        showToast("Login OK", "ok", 1200);
+        setTimeout(() => (location.href = "eblast.html"), 600);
+      }
+
+      async function doRegister() {
+        const name = document.getElementById("regName").value.trim();
+        const email = document
+          .getElementById("regEmail")
+          .value.trim()
+          .toLowerCase();
+        const password = document.getElementById("regPass").value;
+
+        await api("/api/auth/register", {
+          method: "POST",
+          body: JSON.stringify({ name, email, password }),
+        });
+        showToast("Register OK", "ok", 1200);
+        setTimeout(() => (location.href = "eblast.html"), 600);
+      }
+
+      document.getElementById("btnLogin").onclick = async () => {
+        try {
+          await doLogin();
+        } catch (e) {
+          showToast(e.message || "Login failed", "bad", 3200);
+        }
+      };
+
+      document.getElementById("btnReg").onclick = async () => {
+        try {
+          await doRegister();
+        } catch (e) {
+          showToast(e.message || "Register failed", "bad", 3200);
+        }
+      };
+
+      // Enter to submit
+      document.addEventListener("keydown", async (ev) => {
+        if (ev.key !== "Enter") return;
+
+        try {
+          if (panelLogin.style.display !== "none") await doLogin();
+          else await doRegister();
+        } catch (e) {
+          showToast(e.message || "Action failed", "bad", 3200);
+        }
+      });
+
+      async function initGoogle() {
+        const cfg = await api("/api/config");
+        const cid = cfg.google_client_id || "";
+        if (!cid)
+          return showToast("Missing GOOGLE_CLIENT_ID in .env", "bad", 3500);
+
+        let tries = 0;
+        function wait() {
+          tries++;
+          if (!window.google?.accounts?.id) {
+            if (tries === 20) {
+              showToast(
+                "Google login bị chặn (adblock/CSP). Thử tắt adblock hoặc đổi mạng.",
+                "bad",
+                4500,
+              );
+            }
+            return setTimeout(wait, 200);
+          }
+
+          google.accounts.id.initialize({
+            client_id: cid,
+            callback: async (resp) => {
+              try {
+                await api("/api/auth/google", {
+                  method: "POST",
+                  body: JSON.stringify({ credential: resp.credential }),
+                });
+                showToast("Google login OK", "ok", 1200);
+                setTimeout(() => (location.href = "eblast.html"), 600);
+              } catch (e) {
+                showToast(e.message || "Google login failed", "bad", 3200);
+              }
+            },
+          });
+
+          google.accounts.id.renderButton(
+            document.getElementById("googleBtn"),
+            {
+              theme: "outline",
+              size: "large",
+              text: "continue_with",
+              shape: "pill",
+              width: 320,
+            },
+          );
+        }
+        wait();
+      }
+      initGoogle();
+    </script>
+  </body>
+</html>

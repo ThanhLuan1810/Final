@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Dashboard – Mailchymp</title>
+    <style>
+      :root {
+        --ink: #111827;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --orange: #ff7a00;
+        --orange2: #ffb26b;
+        --shadow: 0 14px 40px rgba(0, 0, 0, 0.1);
+        --r: 18px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(1200px 600px at 0% 0%, #fff7ed, transparent 60%),
+          radial-gradient(
+            1000px 600px at 100% 0%,
+            rgba(255, 122, 0, 0.14),
+            transparent 55%
+          ),
+          linear-gradient(180deg, #fff, #fff);
+        min-height: 100vh;
+      }
+      .topbar {
+        width: min(1200px, 100%);
+        margin: 0 auto 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--orange), var(--orange2));
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 900;
+        box-shadow: 0 10px 20px rgba(255, 122, 0, 0.25);
+      }
+      .menu {
+        display: flex;
+        gap: 12px;
+      }
+      .menu a {
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 800;
+        color: #374151;
+        padding: 8px 12px;
+        border-radius: 10px;
+      }
+      .menu a:hover {
+        background: rgba(255, 122, 0, 0.1);
+        color: #7c2d12;
+      }
+      .menu a.active {
+        background: linear-gradient(135deg, var(--orange), var(--orange2));
+        color: #fff;
+        box-shadow: 0 8px 18px rgba(255, 122, 0, 0.25);
+      }
+      .right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .mini {
+        font-size: 12px;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        background: rgba(17, 24, 39, 0.02);
+        padding: 8px 10px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .btn {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+      .btn.danger {
+        border-color: rgba(239, 68, 68, 0.35);
+        color: #7f1d1d;
+      }
+      .wrap {
+        width: min(1200px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 14px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        padding: 16px;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 16px;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .filters {
+        display: grid;
+        grid-template-columns: 1fr 180px 120px;
+        gap: 10px;
+        align-items: end;
+      }
+      @media (max-width: 820px) {
+        .filters {
+          grid-template-columns: 1fr;
+        }
+      }
+      label {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 900;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        outline: none;
+        font-size: 13px;
+        background: #fff;
+      }
+      input:focus,
+      select:focus {
+        border-color: rgba(255, 122, 0, 0.45);
+        box-shadow: 0 0 0 4px rgba(255, 122, 0, 0.12);
+      }
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 10px;
+      }
+      th,
+      td {
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        font-size: 13px;
+        vertical-align: top;
+      }
+      th {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 900;
+      }
+      tr:hover td {
+        background: rgba(17, 24, 39, 0.02);
+      }
+      .tag {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-weight: 900;
+        font-size: 12px;
+        border: 1px solid var(--border);
+        background: rgba(17, 24, 39, 0.02);
+        white-space: nowrap;
+      }
+      .tag.DRAFT {
+        background: rgba(59, 130, 246, 0.1);
+        border-color: rgba(59, 130, 246, 0.25);
+        color: #1e3a8a;
+      }
+      .tag.SCHEDULED {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.25);
+        color: #7c2d12;
+      }
+      .tag.SENDING {
+        background: rgba(168, 85, 247, 0.12);
+        border-color: rgba(168, 85, 247, 0.25);
+        color: #581c87;
+      }
+      .tag.SENT {
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.25);
+        color: #065f46;
+      }
+      .tag.FAILED {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.25);
+        color: #7f1d1d;
+      }
+      .tag.CANCELLED {
+        background: rgba(107, 114, 128, 0.12);
+        border-color: rgba(107, 114, 128, 0.25);
+        color: #374151;
+      }
+
+      /* send logs status (lowercase from campaign_sends) */
+      .tag.queued {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.25);
+        color: #7c2d12;
+      }
+      .tag.sent {
+        background: rgba(16, 185, 129, 0.12);
+        border-color: rgba(16, 185, 129, 0.25);
+        color: #065f46;
+      }
+      .tag.failed {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.25);
+        color: #7f1d1d;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      .split {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 14px;
+        align-items: start;
+      }
+      @media (max-width: 980px) {
+        .split {
+          grid-template-columns: 1fr;
+        }
+      }
+      .kpi {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .kpi .box {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: rgba(17, 24, 39, 0.02);
+        min-width: 160px;
+      }
+      .kpi .num {
+        font-weight: 1000;
+        font-size: 18px;
+      }
+      .toast {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 9999;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        color: #d1fae5;
+        padding: 12px;
+        border-radius: 14px;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+        display: none;
+        max-width: min(380px, calc(100vw - 32px));
+        backdrop-filter: blur(8px);
+      }
+      .toast.show {
+        display: block;
+      }
+      .toast.bad {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.35);
+        color: #fee2e2;
+      }
+      .toast .r {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .toast .x {
+        margin-left: auto;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font-weight: 900;
+        cursor: pointer;
+        font-size: 18px;
+      }
+      .rowActions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .btn.small {
+        padding: 9px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="left">
+        <div class="logo">M</div>
+        <nav class="menu">
+          <a href="eblast.html">Eblast</a>
+          <a href="dashboard.html" class="active">Dashboard</a>
+        </nav>
+      </div>
+      <div class="right">
+        <span class="mini" id="miniSession">Session: checking...</span>
+        <button class="btn danger" id="btnLogout" type="button">Logout</button>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <section class="card">
+        <h2>Campaigns</h2>
+        <div class="filters">
+          <div>
+            <label>Search</label>
+            <input id="q" placeholder="title / subject / from..." />
+          </div>
+          <div>
+            <label>Status</label>
+            <select id="status">
+              <option value="">All</option>
+              <option>DRAFT</option>
+              <option>SCHEDULED</option>
+              <option>SENDING</option>
+              <option>SENT</option>
+              <option>FAILED</option>
+              <option>CANCELLED</option>
+            </select>
+          </div>
+          <div>
+            <button
+              class="btn"
+              id="btnRefresh"
+              type="button"
+              style="width: 100%"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title / Subject</th>
+              <th>Status</th>
+              <th>Sent / Failed</th>
+              <th>Opened</th>
+              <th>Clicked</th>
+              <th>Schedule</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Campaign Details</h2>
+        <div class="muted" id="detailHint">
+          Click a campaign row to see details.
+        </div>
+
+        <div id="detail" style="display: none" class="split">
+          <div>
+            <div class="kpi">
+              <div class="box">
+                <div class="muted">Sent</div>
+                <div class="num" id="kSent">0</div>
+              </div>
+              <div class="box">
+                <div class="muted">Failed</div>
+                <div class="num" id="kFailed">0</div>
+              </div>
+              <div class="box">
+                <div class="muted">Opened (unique)</div>
+                <div class="num" id="kOpenedU">0</div>
+              </div>
+              <div class="box">
+                <div class="muted">Open rate</div>
+                <div class="num" id="kOpenRate">0%</div>
+              </div>
+              <div class="box">
+                <div class="muted">Clicked (unique)</div>
+                <div class="num" id="kClickedU">0</div>
+              </div>
+              <div class="box">
+                <div class="muted">Click rate</div>
+                <div class="num" id="kClickRate">0%</div>
+              </div>
+            </div>
+
+            <div style="margin-top: 12px">
+              <div class="rowActions" style="justify-content: space-between">
+                <div class="muted">Logs (latest 500)</div>
+                <button
+                  class="btn small danger"
+                  id="btnCancelThis"
+                  type="button"
+                  style="display: none"
+                >
+                  Cancel schedule
+                </button>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Opens</th>
+                    <th>Clicks</th>
+                    <th>Sent at</th>
+                    <th>Error</th>
+                  </tr>
+                </thead>
+                <tbody id="logBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div>
+            <div class="muted">Campaign info</div>
+            <div
+              class="mono"
+              id="campInfo"
+              style="margin-top: 8px; white-space: pre-wrap"
+            ></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite">
+      <div class="r">
+        <div id="toastText"></div>
+        <button class="x" id="toastX" type="button">×</button>
+      </div>
+    </div>
+
+    <script>
+      const API = "http://127.0.0.1:3000";
+      const toast = document.getElementById("toast"),
+        toastText = document.getElementById("toastText"),
+        toastX = document.getElementById("toastX");
+      let toastTimer = null;
+      function showToast(text, type = "ok", ms = 2500) {
+        toastText.textContent = text;
+        toast.classList.toggle("bad", type === "bad");
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove("show"), ms);
+      }
+      toastX.onclick = () => {
+        toast.classList.remove("show");
+        clearTimeout(toastTimer);
+      };
+
+      async function api(path, options = {}) {
+        const r = await fetch(API + path, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+          },
+          credentials: "include",
+        });
+        const data = await r.json().catch(() => null);
+        if (!r.ok) throw new Error(data?.message || `HTTP ${r.status}`);
+        return data;
+      }
+
+      async function ensureAuth() {
+        const me = await api("/api/auth/me");
+        if (!me.user) {
+          location.href = "compose.html";
+          return null;
+        }
+        document.getElementById("miniSession").textContent =
+          `Session: ${me.user.email}`;
+        return me.user;
+      }
+
+      document.getElementById("btnLogout").onclick = async () => {
+        try {
+          await api("/api/auth/logout", { method: "POST" });
+          showToast("Logged out.", "ok", 1400);
+          setTimeout(() => (location.href = "compose.html"), 600);
+        } catch (e) {
+          showToast(e.message || "Logout failed", "bad", 3000);
+        }
+      };
+
+      const tbody = document.getElementById("tbody");
+      const qEl = document.getElementById("q");
+      const statusEl = document.getElementById("status");
+
+      function pct(num, den) {
+        if (!den) return "0.0";
+        return ((num / den) * 100).toFixed(1);
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[m],
+        );
+      }
+
+      let currentCampaignId = null;
+
+      async function loadCampaigns() {
+        const q = encodeURIComponent(qEl.value.trim());
+        const st = encodeURIComponent(statusEl.value.trim());
+        const res = await api(
+          `/api/dashboard/campaigns?search=${q}&status=${st}&limit=80&offset=0`,
+        );
+        tbody.innerHTML = "";
+        res.campaigns.forEach((c) => {
+          const sent = Number(c.sent_count || 0);
+          const failed = Number(c.failed_count || 0);
+          const openedU = Number(c.opened_unique || 0);
+          const clickedU = Number(c.clicked_unique || 0);
+          const openRate = pct(openedU, sent);
+          const clickRate = pct(clickedU, sent);
+
+          const scheduleText = c.scheduled_at
+            ? new Date(c.scheduled_at).toLocaleString()
+            : "-";
+
+          const tr = document.createElement("tr");
+          tr.style.cursor = "pointer";
+          tr.innerHTML = `
+            <td class="mono">${c.id}</td>
+            <td>
+              <div style="font-weight:900">${escapeHtml(c.title || "")}</div>
+              <div class="muted">${escapeHtml(c.subject || "")}</div>
+            </td>
+            <td><span class="tag ${c.status}">${c.status}</span></td>
+            <td>
+              <div><b>${sent}</b> sent</div>
+              <div class="muted">${failed} failed</div>
+            </td>
+            <td>
+              <div><b>${openedU}</b> unique</div>
+              <div class="muted">${openRate}%</div>
+            </td>
+            <td>
+              <div><b>${clickedU}</b> unique</div>
+              <div class="muted">${clickRate}%</div>
+            </td>
+            <td class="muted">${scheduleText}</td>
+            <td class="muted">${c.updated_at ? new Date(c.updated_at).toLocaleString() : "-"}</td>
+          `;
+          tr.onclick = () => loadDetail(c.id);
+          tbody.appendChild(tr);
+        });
+      }
+
+      const detailHint = document.getElementById("detailHint");
+      const detail = document.getElementById("detail");
+      const logBody = document.getElementById("logBody");
+      const campInfo = document.getElementById("campInfo");
+
+      const kSent = document.getElementById("kSent");
+      const kFailed = document.getElementById("kFailed");
+      const kOpenedU = document.getElementById("kOpenedU");
+      const kOpenRate = document.getElementById("kOpenRate");
+      const kClickedU = document.getElementById("kClickedU");
+      const kClickRate = document.getElementById("kClickRate");
+
+      const btnCancelThis = document.getElementById("btnCancelThis");
+
+      async function loadDetail(id) {
+        try {
+          currentCampaignId = id;
+          const res = await api(`/api/dashboard/campaigns/${id}`);
+          detailHint.style.display = "none";
+          detail.style.display = "grid";
+
+          const s = res.summary;
+          const sent = Number(s.sent || 0);
+          const failed = Number(s.failed || 0);
+          const openedU = Number(s.opened_unique || 0);
+          const clickedU = Number(s.clicked_unique || 0);
+
+          kSent.textContent = sent;
+          kFailed.textContent = failed;
+          kOpenedU.textContent = openedU;
+          kOpenRate.textContent = pct(openedU, sent) + "%";
+          kClickedU.textContent = clickedU;
+          kClickRate.textContent = pct(clickedU, sent) + "%";
+
+          // show cancel only if scheduled
+          if (res.campaign.status === "SCHEDULED")
+            btnCancelThis.style.display = "inline-block";
+          else btnCancelThis.style.display = "none";
+
+          campInfo.textContent = JSON.stringify(
+            {
+              id: res.campaign.id,
+              title: res.campaign.title,
+              subject: res.campaign.subject,
+              from: `${res.campaign.from_name} <${res.campaign.from_email}>`,
+              status: res.campaign.status,
+              scheduled_at: res.campaign.scheduled_at,
+              created_at: res.campaign.created_at,
+              updated_at: res.campaign.updated_at,
+            },
+            null,
+            2,
+          );
+
+          logBody.innerHTML = "";
+          res.logs.forEach((l) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td class="mono">${escapeHtml(l.email || "")}</td>
+              <td><span class="tag ${l.status}">${l.status}</span></td>
+              <td>
+                <div><b>${Number(l.open_count || 0)}</b></div>
+                <div class="muted">${l.opened_at ? new Date(l.opened_at).toLocaleString() : "-"}</div>
+              </td>
+              <td>
+                <div><b>${Number(l.click_count || 0)}</b></div>
+                <div class="muted">${l.last_clicked_at ? new Date(l.last_clicked_at).toLocaleString() : "-"}</div>
+              </td>
+              <td class="muted">${l.sent_at ? new Date(l.sent_at).toLocaleString() : "-"}</td>
+              <td class="muted">${escapeHtml(l.error_text || "")}</td>
+            `;
+            logBody.appendChild(tr);
+          });
+        } catch (e) {
+          showToast(e.message || "Load detail failed", "bad", 3000);
+        }
+      }
+
+      btnCancelThis.onclick = async () => {
+        try {
+          if (!currentCampaignId) return;
+          await api("/api/campaigns/cancel", {
+            method: "POST",
+            body: JSON.stringify({ campaign_id: currentCampaignId }),
+          });
+          showToast("Cancelled schedule.", "ok", 2000);
+          await loadCampaigns();
+          await loadDetail(currentCampaignId);
+        } catch (e) {
+          showToast(e.message || "Cancel failed", "bad", 3000);
+        }
+      };
+
+      document.getElementById("btnRefresh").onclick = () => loadCampaigns();
+
+      (async () => {
+        await ensureAuth();
+        await loadCampaigns();
+      })();
+    </script>
+  </body>
+</html>
