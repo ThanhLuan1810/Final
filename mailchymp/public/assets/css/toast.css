@@ -1,0 +1,68 @@
+/* ===== TOAST (readable + consistent) ===== */
+:root {
+  --toast-ink: #111827;
+  --toast-success-bg: rgba(16, 185, 129, 0.14);
+  --toast-success-br: rgba(16, 185, 129, 0.35);
+
+  --toast-error-bg: rgba(239, 68, 68, 0.14);
+  --toast-error-br: rgba(239, 68, 68, 0.35);
+}
+
+.toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+
+  padding: 12px 14px;
+  border-radius: 14px;
+
+  /* default: success */
+  background: var(--toast-success-bg);
+  border: 1px solid var(--toast-success-br);
+
+  color: var(--toast-ink);
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1.35;
+
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.2);
+  display: none;
+
+  min-width: 240px;
+  max-width: min(420px, calc(100vw - 32px));
+
+  backdrop-filter: blur(10px);
+  word-break: break-word;
+}
+
+.toast.show {
+  display: block;
+}
+
+.toast.bad {
+  background: var(--toast-error-bg);
+  border-color: var(--toast-error-br);
+  color: var(--toast-ink);
+}
+
+.toast .r {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.toast .x {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 1000;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.9;
+}
+.toast .x:hover {
+  opacity: 1;
+}
