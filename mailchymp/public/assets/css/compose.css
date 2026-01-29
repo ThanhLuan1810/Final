@@ -165,3 +165,81 @@ input:focus {
   display: flex;
   justify-content: center;
 }
+
+/* NEW: small link-like button */
+.linkbtn {
+  border: 0;
+  background: transparent;
+  padding: 6px 0;
+  font-weight: 900;
+  color: var(--orange);
+  cursor: pointer;
+}
+
+.linkbtn:hover {
+  text-decoration: underline;
+}
+
+/* NEW: forgot panel helpers */
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 700;
+  background: #fff7ed;
+  border: 1px solid rgba(255, 122, 0, 0.25);
+  padding: 10px 12px;
+  border-radius: 12px;
+  margin: 8px 0 12px;
+}
+
+.sep {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+}
+
+.grid2 {
+  display: grid;
+  gap: 10px;
+}
+
+.pw {
+  position: relative;
+}
+
+.pw input {
+  padding-right: 44px; /* chừa chỗ cho nút mắt */
+}
+
+.pwBtn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+}
+
+.pwBtn:hover {
+  border-color: rgba(255, 122, 0, 0.45);
+  box-shadow: 0 0 0 4px rgba(255, 122, 0, 0.1);
+}
+
+.pwBtn.on {
+  background: #fff7ed;
+}
+
+@media (min-width: 520px) {
+  .grid2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}

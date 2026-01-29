@@ -10,7 +10,7 @@ const { rememberMeMiddleware } = require("./middleware/auth");
 const configRoutes = require("./routes/config.routes");
 const authRoutes = require("./routes/auth.routes");
 const gmailRoutes = require("./routes/gmail.routes");
-const listRoutes = require("./routes/lists.routes");
+const listsRoutes = require("./routes/lists.routes"); // ✅ only ONE
 const campaignRoutes = require("./routes/campaigns.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const trackingRoutes = require("./routes/tracking.routes");
@@ -57,11 +57,12 @@ app.get("/", (req, res) => res.redirect("/public/compose.html"));
 app.use(configRoutes);
 app.use(authRoutes);
 app.use(gmailRoutes);
-app.use(listRoutes);
+app.use("/api", listsRoutes);
 app.use(campaignRoutes);
 app.use(dashboardRoutes);
 app.use(trackingRoutes);
 app.use(debugRoutes);
+app.use("/api/password", require("./routes/passwordReset.routes"));
 
 // Start in-process scheduler
 startScheduler();

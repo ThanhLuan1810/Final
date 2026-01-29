@@ -33,12 +33,22 @@
         </div>
         <div class="row">
           <label>Password</label>
-          <input
-            id="loginPass"
-            type="password"
-            autocomplete="current-password"
-            placeholder="••••••••"
-          />
+          <div class="pw">
+            <input
+              id="loginPass"
+              type="password"
+              autocomplete="current-password"
+              placeholder="••••••••"
+            />
+            <button
+              class="pwBtn"
+              type="button"
+              data-toggle="loginPass"
+              aria-label="Show password"
+            >
+              👁
+            </button>
+          </div>
         </div>
 
         <div class="inline">
@@ -46,6 +56,10 @@
             <input type="checkbox" id="rememberMe" />
             Remember me
           </label>
+
+          <button class="linkbtn" id="btnOpenForgot" type="button">
+            Forgot password?
+          </button>
         </div>
 
         <div class="row">
@@ -73,16 +87,94 @@
         </div>
         <div class="row">
           <label>Password (>=6 chars)</label>
-          <input
-            id="regPass"
-            type="password"
-            autocomplete="new-password"
-            placeholder="••••••••"
-          />
+          <div class="pw">
+            <input
+              id="regPass"
+              type="password"
+              autocomplete="new-password"
+              placeholder="••••••••"
+            />
+            <button
+              class="pwBtn"
+              type="button"
+              data-toggle="regPass"
+              aria-label="Show password"
+            >
+              👁
+            </button>
+          </div>
         </div>
+
         <div class="row">
           <button class="btn primary" id="btnReg" type="button">
             Create account
+          </button>
+        </div>
+      </div>
+
+      <!-- Forgot Password Panel -->
+      <div id="panelForgot" style="display: none">
+        <div class="hint">
+          Nhập email để nhận OTP qua Gmail, sau đó xác minh và đổi mật khẩu.
+        </div>
+
+        <div class="row">
+          <label>Email</label>
+          <input
+            id="fpEmail"
+            type="email"
+            autocomplete="email"
+            placeholder="email@domain.com"
+          />
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="btnSendOtp" type="button">
+            Send OTP
+          </button>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="grid2">
+          <div class="row">
+            <label>OTP (6 digits)</label>
+            <input id="fpOtp" inputmode="numeric" placeholder="123456" />
+          </div>
+          <div class="row">
+            <label>New password</label>
+            <div class="pw">
+              <input
+                id="fpNewPass"
+                type="password"
+                autocomplete="new-password"
+                placeholder="••••••••"
+              />
+              <button
+                class="pwBtn"
+                type="button"
+                data-toggle="fpNewPass"
+                aria-label="Show password"
+              >
+                👁
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="btnVerifyAndReset" type="button">
+            Verify OTP & Reset
+          </button>
+        </div>
+
+        <div class="inline">
+          <button class="linkbtn" id="btnBackToLogin" type="button">
+            ← Back to Login
+          </button>
+
+          <button class="linkbtn" id="btnResendOtp" type="button">
+            Resend OTP
           </button>
         </div>
       </div>

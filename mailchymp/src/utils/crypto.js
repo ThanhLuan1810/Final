@@ -8,4 +8,21 @@ function makeToken32() {
   return crypto.randomBytes(16).toString("hex"); // 32 chars
 }
 
-module.exports = { sha256, makeToken32, crypto };
+function makeOtp6() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function safeCompareHash(input, hash) {
+  const h1 = Buffer.from(sha256(input), "hex");
+  const h2 = Buffer.from(hash, "hex");
+  if (h1.length !== h2.length) return false;
+  return crypto.timingSafeEqual(h1, h2);
+}
+
+module.exports = {
+  sha256,
+  makeToken32,
+  makeOtp6,
+  safeCompareHash,
+  crypto,
+};

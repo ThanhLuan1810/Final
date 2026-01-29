@@ -285,6 +285,84 @@ select:focus {
   width: 220px;
   max-width: 100%;
 }
+
+.previewCard {
+  --stickTop: 16px;
+  position: sticky;
+  top: var(--stickTop);
+  align-self: start;
+}
+
+.previewCard .previewWrap {
+  max-height: calc(100vh - var(--stickTop) - 84px);
+  display: flex;
+  flex-direction: column;
+}
+
+.previewCard .previewFrame {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 560px;
+}
+
+/* ===== Mailchymp Modal (List Manager) ===== */
+.mcModal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+.mcModalOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+}
+.mcModalPanel {
+  position: relative;
+  width: min(820px, calc(100vw - 24px));
+  margin: 60px auto 0;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.mcModalHead,
+.mcModalFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.mcModalFoot {
+  border-bottom: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  justify-content: flex-end;
+}
+.mcModalBody {
+  padding: 14px;
+}
+
+@media (max-width: 980px) {
+  .previewCard {
+    position: static;
+    top: auto;
+  }
+  .previewCard .previewWrap {
+    max-height: none;
+  }
+  .previewCard .previewFrame {
+    min-height: 520px;
+  }
+}
+
+@media (max-width: 520px) {
+  .previewCard .previewFrame {
+    min-height: 420px;
+  }
+}
+
 @media (max-width: 520px) {
   .dt {
     width: 100%;

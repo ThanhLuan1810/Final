@@ -47,7 +47,7 @@
               </button>
             </div>
 
-            <div class="rowActions">
+            <!--<div class="rowActions">
               <input
                 id="emailsInput"
                 placeholder="Add emails: a@a.com, b@b.com, ..."
@@ -55,6 +55,97 @@
               <button class="btn small" id="btnAddEmails" type="button">
                 Add Emails
               </button>
+            </div>
+          </div>-->
+
+          <!-- ✅ LIST MANAGER LAUNCHER -->
+          <div class="row" id="listManager" style="display: none">
+            <label>Selected List</label>
+
+            <div class="rowActions" style="align-items: center; gap: 10px">
+              <button class="btn small" id="btnOpenListModal" type="button">
+                📂 <span id="listNameText">—</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ✅ LIST MODAL -->
+          <div
+            id="listModal"
+            class="mcModal"
+            aria-hidden="true"
+            style="display: none"
+          >
+            <div class="mcModalOverlay" id="listModalOverlay"></div>
+
+            <div
+              class="mcModalPanel"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="listModalTitle"
+            >
+              <div class="mcModalHead">
+                <div>
+                  <div id="listModalTitle" class="fw900">List members</div>
+                  <div class="muted" id="listModalSub">—</div>
+                </div>
+                <button
+                  class="btn small danger"
+                  id="btnCloseListModal"
+                  type="button"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div class="mcModalBody">
+                <div class="rowActions" style="gap: 10px; flex-wrap: wrap">
+                  <input
+                    id="singleEmailInput"
+                    placeholder="Add single email: a@a.com"
+                  />
+                  <button
+                    class="btn small"
+                    id="btnAddSingleEmail"
+                    type="button"
+                  >
+                    Add
+                  </button>
+                  <button
+                    class="btn small"
+                    id="btnRefreshMembers"
+                    type="button"
+                  >
+                    Refresh
+                  </button>
+                </div>
+
+                <div
+                  style="max-height: 360px; overflow: auto; margin-top: 10px"
+                >
+                  <table style="width: 100%">
+                    <thead>
+                      <tr>
+                        <th style="text-align: left">Email</th>
+                        <th style="width: 160px; text-align: left">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="listMembersBody">
+                      <tr>
+                        <td colspan="2" class="muted">
+                          No emails in this list
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="mcModalFoot">
+                <button class="btn" id="btnCloseListModal2" type="button">
+                  Close
+                </button>
+              </div>
             </div>
           </div>
 
@@ -120,7 +211,7 @@
           <div class="muted mt6" id="scheduleMeta"></div>
         </section>
 
-        <section class="card">
+        <section class="card previewCard">
           <h2>Live Preview</h2>
           <div class="previewWrap">
             <div class="previewHead">

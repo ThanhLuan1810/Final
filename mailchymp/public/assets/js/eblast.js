@@ -1,192 +1,448 @@
-// assets/js/eblast.js
-(() => {
-  const { $, api, showToast } = window.MC;
+/* assets/js/eblast.js (FULL - FINAL, matches your current routes)
+  Gmail:
+    GET  /api/gmail/status
+    GET  /api/gmail/connect (redirect)
+    POST /api/gmail/disconnect
 
-  // ===== Mini session + gmail =====
+  Lists:
+    GET  /api/lists
+    POST /api/lists {name}
+    GET  /api/lists/:id/members
+    POST /api/lists/:id/members {email}
+    PUT  /api/lists/:id/members/:subscriberId {email}
+    DELETE /api/lists/:id/members/:subscriberId
+
+  Campaigns:
+    POST /api/campaigns
+    PUT  /api/campaigns/:id
+    POST /api/campaigns/send {campaign_id, list_id}
+    POST /api/campaigns/schedule {campaign_id, list_id, scheduled_at}
+*/
+
+(() => {
+  const API = {
+    gmailStatus: "/api/gmail/status",
+    gmailConnect: "/api/gmail/connect",
+    gmailDisconnect: "/api/gmail/disconnect",
+
+    lists: "/api/lists",
+    listMembers: (listId) => `/api/lists/${listId}/members`,
+    listMember: (listId, subscriberId) =>
+      `/api/lists/${listId}/members/${subscriberId}`,
+
+    campaigns: "/api/campaigns",
+    campaign: (id) => `/api/campaigns/${id}`,
+    sendNow: "/api/campaigns/send",
+    schedule: "/api/campaigns/schedule",
+  };
+
+  // ===== helpers =====
+  const $ = (id) => document.getElementById(id);
+  const normEmail = (s) =>
+    String(s || "")
+      .trim()
+      .toLowerCase();
+  const isEmail = (s) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || "").trim());
+
+  function toast(msg, type) {
+    if (typeof window.showToast === "function")
+      return window.showToast(msg, type);
+    console.log(type ? `[${type}]` : "", msg);
+    alert(msg);
+  }
+
+  async function api(url, opts) {
+    const res = await fetch(url, opts);
+    let data = {};
+    try {
+      data = await res.json();
+    } catch {}
+    if (!res.ok || data.ok === false)
+      throw new Error(data.message || `Request failed: ${res.status}`);
+    return data;
+  }
+
+  function splitEmails(raw) {
+    return String(raw || "")
+      .split(/[,\n;\s]+/g)
+      .map((x) => normEmail(x))
+      .filter(Boolean);
+  }
+
+  function toSqlDatetime(dtLocalValue) {
+    if (!dtLocalValue) return null;
+    const v = String(dtLocalValue).trim();
+    if (!v.includes("T")) return null;
+    return v.replace("T", " ") + ":00";
+  }
+
+  // ===== elements =====
   const gmailStatusText = $("gmailStatusText");
   const btnConnect = $("btnConnect");
   const btnDisconnect = $("btnDisconnect");
 
-  function renderGmailStatus(st) {
-    if (st.connected) {
-      gmailStatusText.textContent = `Connected: ${st.email}`;
-      btnConnect.disabled = true;
-      btnDisconnect.disabled = false;
-    } else {
-      gmailStatusText.textContent = "Not connected";
-      btnConnect.disabled = false;
-      btnDisconnect.disabled = true;
+  const listSelect = $("listSelect");
+  const newListName = $("newListName");
+  const btnCreateList = $("btnCreateList");
+  const emailsInput = $("emailsInput");
+  const btnAddEmails = $("btnAddEmails");
+
+  const title = $("title");
+  const subject = $("subject");
+  const fromName = $("fromName");
+  const replyTo = $("replyTo");
+  const htmlInput = $("htmlInput");
+
+  const btnSaveDraft = $("btnSaveDraft");
+  const btnNewDraft = $("btnNewDraft");
+  const btnCreateCampaign = $("btnCreateCampaign");
+  const btnSendNow = $("btnSendNow");
+  const scheduleAt = $("scheduleAt");
+  const btnSchedule = $("btnSchedule");
+
+  const campaignId = $("campaignId");
+  const draftMeta = $("draftMeta");
+  const scheduleMeta = $("scheduleMeta");
+
+  const previewFrame = $("previewFrame");
+  const btnPreviewRefresh = $("btnPreviewRefresh");
+  const btnPreviewPop = $("btnPreviewPop");
+
+  // Optional: modal list manager UI
+  const listManager = $("listManager");
+  const btnOpenListModal = $("btnOpenListModal");
+  const listNameText = $("listNameText");
+
+  const listModal = $("listModal");
+  const listModalOverlay = $("listModalOverlay");
+  const btnCloseListModal = $("btnCloseListModal");
+  const btnCloseListModal2 = $("btnCloseListModal2");
+  const listModalSub = $("listModalSub");
+  const listMembersBody = $("listMembersBody");
+  const singleEmailInput = $("singleEmailInput");
+  const btnAddSingleEmail = $("btnAddSingleEmail");
+  const btnRefreshMembers = $("btnRefreshMembers");
+
+  // ===== state =====
+  const LS_KEY = "mailchymp_eblast_draft_final";
+  let currentListId = null;
+  let previewTimer = null;
+  let gmailConnected = false;
+
+  // ===== Gmail =====
+  async function loadGmailStatus() {
+    if (!gmailStatusText) return;
+    try {
+      const data = await api(API.gmailStatus);
+      gmailConnected = !!data.connected;
+      gmailStatusText.textContent = data.connected
+        ? `Connected: ${data.email || ""}`.trim()
+        : "Not connected";
+    } catch (e) {
+      gmailConnected = false;
+      gmailStatusText.textContent = "Status unavailable";
+      console.error(e);
     }
   }
 
-  async function refreshMini() {
-    const me = await api("/api/auth/me");
-    if (!me.user) {
-      location.href = "compose.html";
+  function bindGmail() {
+    btnConnect?.addEventListener(
+      "click",
+      () => (window.location.href = API.gmailConnect),
+    );
+    btnDisconnect?.addEventListener("click", async () => {
+      try {
+        await api(API.gmailDisconnect, { method: "POST" });
+        toast("Disconnected");
+        await loadGmailStatus();
+      } catch (e) {
+        toast(e.message, "danger");
+      }
+    });
+  }
+
+  // ===== Lists =====
+  function syncListLauncher() {
+    currentListId = listSelect?.value || null;
+    if (!listManager) return;
+
+    if (!currentListId) {
+      listManager.style.display = "none";
       return;
     }
-    $("miniSession").textContent = `Session: ${me.user.email}`;
 
-    const st = await api("/api/gmail/status");
-    $("miniGmail").textContent = st.connected
-      ? `Gmail: ${st.email}`
-      : "Gmail: NOT_CONNECTED";
-    renderGmailStatus(st);
+    listManager.style.display = "block";
+    const opt = listSelect.options[listSelect.selectedIndex];
+    const txt = opt ? opt.textContent : "—";
+    if (listNameText) listNameText.textContent = txt;
+    if (listModalSub) listModalSub.textContent = txt;
   }
 
-  btnConnect.onclick = () => (window.location.href = "/api/gmail/connect");
-  btnDisconnect.onclick = async () => {
-    try {
-      await api("/api/gmail/disconnect", { method: "POST" });
-      showToast("Disconnected.", "ok", 1400);
-      await refreshMini();
-    } catch (e) {
-      showToast(e.message || "Disconnect failed", "bad", 3000);
+  async function loadLists(keepSelection = true) {
+    if (!listSelect) return;
+    const prev = keepSelection ? listSelect.value : "";
+
+    const data = await api(API.lists);
+    const lists = data.lists || [];
+
+    listSelect.innerHTML =
+      `<option value="">-- Select a list --</option>` +
+      lists
+        .map((l) => `<option value="${l.id}">${l.name} (${l.total})</option>`)
+        .join("");
+
+    if (
+      keepSelection &&
+      prev &&
+      lists.some((x) => String(x.id) === String(prev))
+    ) {
+      listSelect.value = prev;
     }
-  };
 
-  // ===== Elements =====
-  const titleEl = $("title");
-  const subjectEl = $("subject");
-  const fromNameEl = $("fromName");
-  const replyToEl = $("replyTo");
-  const htmlEl = $("htmlInput");
-  const campaignIdEl = $("campaignId");
-  const draftMetaEl = $("draftMeta");
-  const scheduleMetaEl = $("scheduleMeta");
-  const listSelect = $("listSelect");
-  const scheduleAtEl = $("scheduleAt");
-
-  // URL params: ?campaign_id=123&mode=edit|view
-  const urlParams = new URLSearchParams(location.search || "");
-  const paramCampaignId = Number(urlParams.get("campaign_id") || 0);
-  const paramMode = String(urlParams.get("mode") || "")
-    .trim()
-    .toLowerCase();
-  let loadedCampaignStatus = ""; // DRAFT/SCHEDULED/SENT...
-
-  // ===== Preview =====
-  const previewFrame = $("previewFrame");
-
-  function setPreview(html) {
-    const doc =
-      previewFrame.contentDocument || previewFrame.contentWindow.document;
-    doc.open();
-    doc.write(
-      html ||
-        "<div style='font-family:system-ui;padding:16px;color:#6b7280'>No HTML</div>",
-    );
-    doc.close();
+    syncListLauncher();
   }
 
-  function refreshPreview() {
-    setPreview(htmlEl.value);
-  }
+  async function createList() {
+    const name =
+      String(newListName?.value || "").trim() || prompt("Nhập tên list mới:");
+    if (!name) return;
 
-  let previewTimer = null;
-  htmlEl.addEventListener("input", () => {
-    clearTimeout(previewTimer);
-    previewTimer = setTimeout(refreshPreview, 150);
-  });
-
-  $("btnPreviewRefresh").onclick = refreshPreview;
-
-  $("btnPreviewPop").onclick = () => {
-    const w = window.open("", "_blank");
-    w.document.open();
-    w.document.write(htmlEl.value || "<div>No HTML</div>");
-    w.document.close();
-  };
-
-  // ===== Draft local =====
-  const DRAFT_KEY = "mailchymp:eblast:draft:v4";
-  let lastHash = "";
-
-  function formatLocalDatetime(val) {
-    if (!val) return "";
-    const d = new Date(val);
-    if (isNaN(d.getTime())) return String(val);
-    return d.toLocaleString();
-  }
-
-  function loadDraft() {
-    const raw = localStorage.getItem(DRAFT_KEY);
-    if (!raw) return;
     try {
-      const d = JSON.parse(raw);
-      titleEl.value = d.title || "";
-      subjectEl.value = d.subject || "";
-      fromNameEl.value = d.from_name || "";
-      replyToEl.value = d.reply_to || "";
-      htmlEl.value = d.html || "";
-      campaignIdEl.value = d.campaign_id || "";
-      scheduleAtEl.value = d.schedule_at || "";
-      draftMetaEl.textContent = d.saved_at
-        ? `Draft saved at: ${new Date(d.saved_at).toLocaleString()}`
-        : "Draft loaded";
-      scheduleMetaEl.textContent = d.schedule_at
-        ? `Schedule set: ${formatLocalDatetime(d.schedule_at)}`
-        : "";
-      refreshPreview();
-    } catch {}
-  }
+      await api(API.lists, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      toast("List created");
+      if (newListName) newListName.value = "";
 
-  function saveDraftLocal() {
-    const payload = {
-      title: titleEl.value.trim(),
-      subject: subjectEl.value.trim(),
-      from_name: fromNameEl.value.trim(),
-      reply_to: replyToEl.value.trim(),
-      html: htmlEl.value,
-      campaign_id: campaignIdEl.value.trim(),
-      schedule_at: scheduleAtEl.value || "",
-      saved_at: Date.now(),
-    };
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
-    draftMetaEl.textContent = `Draft saved at: ${new Date(payload.saved_at).toLocaleString()}`;
-    scheduleMetaEl.textContent = payload.schedule_at
-      ? `Schedule set: ${formatLocalDatetime(payload.schedule_at)}`
-      : "";
-  }
+      await loadLists(false);
 
-  async function saveDraftServer({ schedule = false } = {}) {
-    // For DRAFT/SCHEDULED edit mode
-    const p = requireFields();
-    const existing = campaignIdEl.value.trim();
-
-    if (existing) {
-      // update
-      const body = {
-        title: p.title,
-        subject: p.subject,
-        from_name: p.from_name,
-        reply_to: p.reply_to,
-        html: p.html,
-      };
-      if (schedule) {
-        const listId = listSelect.value;
-        const whenLocal = scheduleAtEl.value;
-        const iso = toIsoFromLocalInput(whenLocal);
-        if (!listId) throw new Error("Please select a list");
-        if (!whenLocal) throw new Error("Please pick schedule time");
-        if (!iso) throw new Error("Invalid schedule time");
-        if (new Date(iso).getTime() < Date.now() + 15 * 1000) {
-          throw new Error("Schedule time must be in the future");
+      // auto-select by name prefix
+      for (const opt of listSelect.options) {
+        if (opt.value && opt.textContent.startsWith(name)) {
+          listSelect.value = opt.value;
+          break;
         }
-        body.list_id = Number(listId);
-        body.scheduled_at = iso;
+      }
+      syncListLauncher();
+    } catch (e) {
+      toast(e.message, "danger");
+    }
+  }
+
+  async function addEmailsBulk() {
+    if (!currentListId) return toast("Chọn list trước đã", "danger");
+
+    const emails = splitEmails(emailsInput?.value);
+    if (!emails.length) return toast("Nhập email trước đã", "danger");
+
+    const bad = emails.filter((x) => !isEmail(x));
+    if (bad.length) {
+      return toast(
+        `Email sai: ${bad.slice(0, 3).join(", ")}${bad.length > 3 ? "..." : ""}`,
+        "danger",
+      );
+    }
+
+    try {
+      for (const email of emails) {
+        await api(API.listMembers(currentListId), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+      }
+      toast(`Added ${emails.length} emails`);
+      if (emailsInput) emailsInput.value = "";
+      await loadLists(true);
+    } catch (e) {
+      toast(e.message, "danger");
+    }
+  }
+
+  function bindLists() {
+    btnCreateList?.addEventListener("click", createList);
+    btnAddEmails?.addEventListener("click", addEmailsBulk);
+    listSelect?.addEventListener("change", syncListLauncher);
+  }
+
+  // ===== List Modal =====
+  function modalOpen(open) {
+    if (!listModal) return;
+    listModal.style.display = open ? "block" : "none";
+    listModal.setAttribute("aria-hidden", open ? "false" : "true");
+    document.body.style.overflow = open ? "hidden" : "";
+  }
+
+  function renderMembers(members) {
+    if (!listMembersBody) return;
+    if (!members || !members.length) {
+      listMembersBody.innerHTML = `<tr><td colspan="2" class="muted">No emails in this list</td></tr>`;
+      return;
+    }
+
+    listMembersBody.innerHTML = members
+      .map(
+        (m) => `
+        <tr>
+          <td>${m.email}</td>
+          <td>
+            <button class="btn small" data-act="edit" data-id="${m.subscriber_id}" data-email="${m.email}">Edit</button>
+            <button class="btn small danger" data-act="del" data-id="${m.subscriber_id}">Delete</button>
+          </td>
+        </tr>
+      `,
+      )
+      .join("");
+  }
+
+  async function loadMembers() {
+    if (!currentListId) return;
+    const data = await api(API.listMembers(currentListId));
+    renderMembers(data.members || []);
+  }
+
+  function bindListModal() {
+    if (!listModal || !btnOpenListModal) return;
+
+    btnOpenListModal.addEventListener("click", async () => {
+      if (!currentListId) return toast("Chọn list trước đã", "danger");
+      syncListLauncher();
+      modalOpen(true);
+      try {
+        await loadMembers();
+      } catch (e) {
+        toast(e.message, "danger");
+      }
+    });
+
+    const close = () => modalOpen(false);
+    listModalOverlay?.addEventListener("click", close);
+    btnCloseListModal?.addEventListener("click", close);
+    btnCloseListModal2?.addEventListener("click", close);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && listModal.style.display === "block") close();
+    });
+
+    btnRefreshMembers?.addEventListener("click", async () => {
+      try {
+        await loadMembers();
+        toast("Refreshed");
+      } catch (e) {
+        toast(e.message, "danger");
+      }
+    });
+
+    btnAddSingleEmail?.addEventListener("click", async () => {
+      if (!currentListId) return toast("Chọn list trước đã", "danger");
+      const email = normEmail(singleEmailInput?.value);
+      if (!isEmail(email)) return toast("Email không hợp lệ", "danger");
+
+      try {
+        await api(API.listMembers(currentListId), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        if (singleEmailInput) singleEmailInput.value = "";
+        await loadMembers();
+        await loadLists(true);
+        toast("Added");
+      } catch (e) {
+        toast(e.message, "danger");
+      }
+    });
+
+    listMembersBody?.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-act]");
+      if (!btn || !currentListId) return;
+
+      const act = btn.getAttribute("data-act");
+      const sid = btn.getAttribute("data-id");
+
+      if (act === "del") {
+        if (!confirm("Remove this email from list?")) return;
+        try {
+          await api(API.listMember(currentListId, sid), { method: "DELETE" });
+          await loadMembers();
+          await loadLists(true);
+          toast("Removed");
+        } catch (err) {
+          toast(err.message, "danger");
+        }
+        return;
       }
 
-      await api(`/api/campaigns/${encodeURIComponent(existing)}`, {
-        method: "PUT",
-        body: JSON.stringify(body),
-      });
-      return Number(existing);
-    }
+      if (act === "edit") {
+        const oldEmail = btn.getAttribute("data-email") || "";
+        const nextEmail = normEmail(prompt("Edit email:", oldEmail));
+        if (!nextEmail || nextEmail === normEmail(oldEmail)) return;
+        if (!isEmail(nextEmail)) return toast("Email không hợp lệ", "danger");
 
-    // create
-    const data = await api("/api/campaigns", {
+        try {
+          await api(API.listMember(currentListId, sid), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: nextEmail }),
+          });
+          await loadMembers();
+          toast("Updated");
+        } catch (err) {
+          toast(err.message, "danger");
+        }
+      }
+    });
+  }
+
+  // ===== Campaigns / Draft =====
+  function getPayload() {
+    return {
+      list_id: listSelect?.value ? Number(listSelect.value) : null,
+      title: String(title?.value || "").trim(),
+      subject: String(subject?.value || "").trim(),
+      from_name: String(fromName?.value || "").trim(),
+      reply_to: String(replyTo?.value || "").trim() || null,
+      html: String(htmlInput?.value || ""),
+    };
+  }
+
+  function saveLocal(meta = {}) {
+    const payload = {
+      ...getPayload(),
+      campaign_id: String(campaignId?.value || "").trim(),
+      schedule_at: scheduleAt?.value || "",
+      _meta: { ...meta, saved_at: new Date().toISOString() },
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(payload));
+  }
+
+  function loadLocal() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  function clearLocal() {
+    localStorage.removeItem(LS_KEY);
+  }
+
+  async function createCampaign() {
+    const p = getPayload();
+    if (!p.title || !p.subject || !p.from_name || !p.html.trim()) {
+      throw new Error("Thiếu fields (title/subject/from/html)");
+    }
+    // backend requires Gmail connected to create
+    if (!gmailConnected) throw new Error("Gmail not connected");
+
+    const resp = await api(API.campaigns, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: p.title,
         subject: p.subject,
@@ -195,362 +451,225 @@
         html: p.html,
       }),
     });
-    campaignIdEl.value = String(data.campaign_id);
-    return data.campaign_id;
+
+    if (resp.campaign_id && campaignId) campaignId.value = resp.campaign_id;
+    return resp.campaign_id;
   }
 
-  /*$("btnSaveDraft").onclick = async () => {
-    try {
-      if (paramMode === "view" || loadedCampaignStatus === "SENT") {
-        throw new Error("Campaign đã gửi: không thể lưu/sửa.");
-      }
-      const id = await saveDraftServer({ schedule: false });
-      saveDraftLocal();
-      showToast(`Saved. Campaign ID: ${id}`, "ok", 1800);
-    } catch (e) {
-      showToast(e.message || "Save draft failed", "bad", 3200);
+  async function updateCampaign(id) {
+    const p = getPayload();
+    if (!p.title || !p.subject || !p.from_name || !p.html.trim()) {
+      throw new Error("Thiếu fields (title/subject/from/html)");
     }
-  };*/
 
-  $("btnSaveDraft").onclick = async () => {
-    try {
-      if (paramMode === "view" || loadedCampaignStatus === "SENT") {
-        throw new Error("Campaign đã gửi: không thể lưu/sửa.");
-      }
-      const id = await saveDraftServer({ schedule: false });
-      showToast(`Draft saved (#${id}). Creating new draft...`, "ok", 1600);
-      resetComposer({ keepList: true });
-      draftMetaEl.textContent = "Draft: new";
-      scheduleMetaEl.textContent = "";
-    } catch (e) {
-      showToast(e.message || "Save draft failed", "bad", 3200);
-    }
-  };
-
-  function hashDraft() {
-    return [
-      titleEl.value,
-      subjectEl.value,
-      fromNameEl.value,
-      replyToEl.value,
-      htmlEl.value,
-      campaignIdEl.value,
-      scheduleAtEl.value,
-    ].join("||");
-  }
-
-  function hasMeaningfulDraft() {
-    return (
-      (titleEl.value || "").trim() ||
-      (subjectEl.value || "").trim() ||
-      (fromNameEl.value || "").trim() ||
-      (replyToEl.value || "").trim() ||
-      (htmlEl.value || "").trim() ||
-      (campaignIdEl.value || "").trim() ||
-      (scheduleAtEl.value || "").trim()
-    );
-  }
-
-  setInterval(() => {
-    const h = hashDraft();
-    if (h !== lastHash) {
-      lastHash = h;
-      if (hasMeaningfulDraft()) saveDraftLocal();
-    }
-  }, 8000);
-
-  // ===== RESET after send/schedule =====
-  function resetComposer({ keepList = true } = {}) {
-    const currentList = listSelect.value;
-
-    titleEl.value = "";
-    subjectEl.value = "";
-    fromNameEl.value = "";
-    replyToEl.value = "";
-    htmlEl.value = "";
-    campaignIdEl.value = "";
-    scheduleAtEl.value = "";
-    draftMetaEl.textContent = "Draft: new";
-    scheduleMetaEl.textContent = "";
-
-    localStorage.removeItem(DRAFT_KEY);
-
-    setPreview(
-      "<div style='font-family:system-ui;padding:16px;color:#6b7280'>No HTML</div>",
-    );
-
-    if (keepList) listSelect.value = currentList;
-    lastHash = "";
-
-    // clear any ?campaign_id=... so user doesn't get stuck
-    try {
-      history.replaceState(null, "", "eblast.html");
-      loadedCampaignStatus = "";
-    } catch {}
-  }
-
-  $("btnNewDraft").onclick = () => {
-    resetComposer({ keepList: true });
-    showToast("New draft ready.", "ok", 1400);
-  };
-
-  // ===== Lists =====
-  async function loadLists() {
-    const res = await api("/api/lists");
-    listSelect.innerHTML = `<option value="">-- Select a list --</option>`;
-    (res.lists || []).forEach((l) => {
-      const opt = document.createElement("option");
-      opt.value = l.id;
-      opt.textContent = `${l.name} (${l.count} emails)`;
-      listSelect.appendChild(opt);
+    await api(API.campaign(id), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: p.title,
+        subject: p.subject,
+        from_name: p.from_name,
+        reply_to: p.reply_to,
+        html: p.html,
+      }),
     });
   }
 
-  $("btnCreateList").onclick = async () => {
+  async function saveDraft() {
     try {
-      const name = $("newListName").value.trim();
-      if (!name) throw new Error("Missing list name");
-      await api("/api/lists", {
-        method: "POST",
-        body: JSON.stringify({ name }),
-      });
-      showToast("List created.", "ok", 1500);
-      $("newListName").value = "";
-      await loadLists();
+      let id = Number(String(campaignId?.value || "").trim());
+      if (!id) id = await createCampaign(); // creates DRAFT row
+      await updateCampaign(id); // updates content
+
+      if (draftMeta)
+        draftMeta.textContent = `Draft: saved (${new Date().toLocaleString()})`;
+      saveLocal({ server: true, campaign_id: id });
+      toast("Draft saved");
     } catch (e) {
-      showToast(e.message || "Create list failed", "bad", 3000);
+      saveLocal({ server: false, reason: e.message });
+      toast(e.message || "Save draft failed", "danger");
     }
-  };
-
-  $("btnAddEmails").onclick = async () => {
-    try {
-      const listId = listSelect.value;
-      if (!listId) throw new Error("Please select a list first");
-      const raw = $("emailsInput").value;
-      const emails = raw
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      if (!emails.length) throw new Error("No emails");
-
-      const resp = await api(`/api/lists/${listId}/subscribers`, {
-        method: "POST",
-        body: JSON.stringify({ emails }),
-      });
-
-      showToast(`Added ${resp.added} email(s).`, "ok", 2000);
-      $("emailsInput").value = "";
-      await loadLists();
-    } catch (e) {
-      showToast(e.message || "Add emails failed", "bad", 3200);
-    }
-  };
-
-  // ===== Campaign create/send/schedule =====
-  function requireFields() {
-    const title = titleEl.value.trim();
-    const subject = subjectEl.value.trim();
-    const from_name = fromNameEl.value.trim();
-    const html = htmlEl.value;
-
-    if (!title) throw new Error("Missing title");
-    if (!subject) throw new Error("Missing subject");
-    if (!from_name) throw new Error("Missing from name");
-    if (!html || !html.trim()) throw new Error("Missing html");
-
-    return {
-      title,
-      subject,
-      from_name,
-      reply_to: replyToEl.value.trim(),
-      html,
-    };
   }
 
-  async function createCampaignIfNeeded() {
-    const existing = campaignIdEl.value.trim();
-    if (existing) return Number(existing);
-
-    const id = await saveDraftServer({ schedule: false });
-    showToast(`Created campaign ID: ${id}`, "ok", 2500);
-    saveDraftLocal();
-    return id;
-  }
-
-  $("btnCreateCampaign").onclick = async () => {
+  async function createOrUpdateCampaign() {
     try {
-      await createCampaignIfNeeded();
-    } catch (e) {
-      showToast(e.message || "Create failed", "bad", 3200);
-    }
-  };
-
-  $("btnSendNow").onclick = async () => {
-    try {
-      const st = await api("/api/gmail/status");
-      if (!st.connected) throw new Error("Gmail not connected");
-
-      const listId = listSelect.value;
-      if (!listId) throw new Error("Please select a list");
-
-      const campaignId = await createCampaignIfNeeded();
-
-      const resp = await api("/api/campaigns/send", {
-        method: "POST",
-        body: JSON.stringify({
-          campaign_id: campaignId,
-          list_id: Number(listId),
-        }),
-      });
-
-      showToast(
-        `Send done. Sent: ${resp.sent} Failed: ${resp.failed}`,
-        "ok",
-        3500,
-      );
-      resetComposer({ keepList: true });
-    } catch (e) {
-      showToast(e.message || "Send failed", "bad", 3500);
-    }
-  };
-
-  function toIsoFromLocalInput(val) {
-    const d = new Date(val);
-    if (isNaN(d.getTime())) return null;
-    return d.toISOString();
-  }
-
-  $("btnSchedule").onclick = async () => {
-    try {
-      const st = await api("/api/gmail/status");
-      if (!st.connected) throw new Error("Gmail not connected");
-
-      const listId = listSelect.value;
-      if (!listId) throw new Error("Please select a list");
-
-      const whenLocal = scheduleAtEl.value;
-      if (!whenLocal) throw new Error("Please pick schedule time");
-
-      const iso = toIsoFromLocalInput(whenLocal);
-      if (!iso) throw new Error("Invalid schedule time");
-
-      if (new Date(iso).getTime() < Date.now() + 15 * 1000) {
-        throw new Error("Schedule time must be in the future");
+      let id = Number(String(campaignId?.value || "").trim());
+      if (!id) {
+        id = await createCampaign();
+        toast("Campaign created");
+      } else {
+        toast("Campaign updated");
       }
-
-      // Prefer single-source-of-truth: update campaign to SCHEDULED via PUT
-      const campaignId = await saveDraftServer({ schedule: true });
-
-      // Keep old endpoint for backward compatibility
-      const resp = await api("/api/campaigns/schedule", {
-        method: "POST",
-        body: JSON.stringify({
-          campaign_id: campaignId,
-          list_id: Number(listId),
-          scheduled_at: iso,
-        }),
-      });
-
-      showToast(
-        resp?.message || `Scheduled OK: ${formatLocalDatetime(whenLocal)}`,
-        "ok",
-        3500,
-      );
-      resetComposer({ keepList: true });
+      await updateCampaign(id);
+      saveLocal({ server: true, campaign_id: id });
     } catch (e) {
-      showToast(e.message || "Schedule failed", "bad", 3500);
+      toast(e.message || "Create/Update campaign failed", "danger");
     }
-  };
-
-  function setDefaultScheduleTime() {
-    const d = new Date(Date.now() + 30 * 60 * 1000);
-    const pad = (n) => String(n).padStart(2, "0");
-    const v =
-      d.getFullYear() +
-      "-" +
-      pad(d.getMonth() + 1) +
-      "-" +
-      pad(d.getDate()) +
-      "T" +
-      pad(d.getHours()) +
-      ":" +
-      pad(d.getMinutes());
-    if (!scheduleAtEl.value) scheduleAtEl.value = v;
   }
 
-  window.addEventListener("load", async () => {
-    loadDraft();
-    refreshPreview();
-    setDefaultScheduleTime();
-    await refreshMini();
-    await loadLists();
-
-    // If opened from Campaigns page, load campaign from DB
-    if (paramCampaignId) {
-      try {
-        const r = await api(
-          `/api/campaigns/${encodeURIComponent(paramCampaignId)}`,
+  async function sendNow() {
+    try {
+      const id = Number(String(campaignId?.value || "").trim());
+      const list_id = Number(String(listSelect?.value || "").trim());
+      if (!id)
+        return toast(
+          "Campaign ID trống. Bấm Create Campaign/Save Draft trước.",
+          "danger",
         );
-        const c = r.campaign;
-        loadedCampaignStatus = String(c.status || "").toUpperCase();
+      if (!list_id) return toast("Chọn list trước đã", "danger");
 
-        titleEl.value = c.title || "";
-        subjectEl.value = c.subject || "";
-        fromNameEl.value = c.from_name || "";
-        replyToEl.value = c.reply_to || "";
-        htmlEl.value = c.html || "";
-        campaignIdEl.value = String(c.id || "");
+      await api(API.sendNow, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaign_id: id, list_id }),
+      });
 
-        if (c.list_id) listSelect.value = String(c.list_id);
-        if (c.scheduled_at) {
-          const d = new Date(c.scheduled_at);
-          if (!isNaN(d.getTime())) {
-            const pad = (n) => String(n).padStart(2, "0");
-            scheduleAtEl.value =
-              d.getFullYear() +
-              "-" +
-              pad(d.getMonth() + 1) +
-              "-" +
-              pad(d.getDate()) +
-              "T" +
-              pad(d.getHours()) +
-              ":" +
-              pad(d.getMinutes());
-          }
-        }
-
-        draftMetaEl.textContent = `Loaded campaign #${c.id} (${loadedCampaignStatus})`;
-        scheduleMetaEl.textContent = c.scheduled_at
-          ? `Scheduled at: ${formatLocalDatetime(c.scheduled_at)}`
-          : "";
-        refreshPreview();
-
-        const viewOnly =
-          paramMode === "view" || loadedCampaignStatus === "SENT";
-        if (viewOnly) {
-          [
-            titleEl,
-            subjectEl,
-            fromNameEl,
-            replyToEl,
-            htmlEl,
-            listSelect,
-            scheduleAtEl,
-          ].forEach((el) => (el.disabled = true));
-          $("btnSaveDraft").disabled = true;
-          $("btnCreateCampaign").disabled = true;
-          $("btnSendNow").disabled = true;
-          $("btnSchedule").disabled = true;
-          $("btnNewDraft").disabled = false;
-          showToast(
-            "Campaign đã gửi: chỉ xem preview (không sửa).",
-            "ok",
-            2200,
-          );
-        }
-      } catch (e) {
-        showToast(e.message || "Load campaign failed", "bad", 3200);
-      }
+      toast("Send started");
+      if (scheduleMeta)
+        scheduleMeta.textContent = `Sent: ${new Date().toLocaleString()}`;
+    } catch (e) {
+      toast(e.message || "Send failed", "danger");
     }
-  });
+  }
+
+  async function schedule() {
+    try {
+      const id = Number(String(campaignId?.value || "").trim());
+      const list_id = Number(String(listSelect?.value || "").trim());
+      const scheduled_at = toSqlDatetime(scheduleAt?.value);
+
+      if (!id)
+        return toast(
+          "Campaign ID trống. Bấm Create Campaign/Save Draft trước.",
+          "danger",
+        );
+      if (!list_id) return toast("Chọn list trước đã", "danger");
+      if (!scheduled_at)
+        return toast("Chọn thời gian schedule hợp lệ", "danger");
+
+      await api(API.schedule, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaign_id: id, list_id, scheduled_at }),
+      });
+
+      toast("Scheduled");
+      if (scheduleMeta)
+        scheduleMeta.textContent = `Scheduled at: ${scheduled_at}`;
+    } catch (e) {
+      toast(e.message || "Schedule failed", "danger");
+    }
+  }
+
+  function newDraft() {
+    if (!confirm("New Draft? (Xoá nội dung đang soạn)")) return;
+
+    const keepList = listSelect?.value || "";
+
+    if (title) title.value = "";
+    if (subject) subject.value = "";
+    if (fromName) fromName.value = "";
+    if (replyTo) replyTo.value = "";
+    if (htmlInput) htmlInput.value = "";
+    if (campaignId) campaignId.value = "";
+    if (scheduleAt) scheduleAt.value = "";
+
+    if (listSelect) listSelect.value = keepList;
+    syncListLauncher();
+
+    clearLocal();
+    if (draftMeta) draftMeta.textContent = "Draft: not saved yet";
+    if (scheduleMeta) scheduleMeta.textContent = "";
+    refreshPreviewNow();
+    toast("New draft ready");
+  }
+
+  function bindCampaignUI() {
+    btnSaveDraft?.addEventListener("click", saveDraft);
+    btnNewDraft?.addEventListener("click", newDraft);
+    btnCreateCampaign?.addEventListener("click", createOrUpdateCampaign);
+    btnSendNow?.addEventListener("click", sendNow);
+    btnSchedule?.addEventListener("click", schedule);
+  }
+
+  // ===== Preview =====
+  function refreshPreviewNow() {
+    if (!previewFrame) return;
+    const html = String(htmlInput?.value || "");
+    previewFrame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${html}</body></html>`;
+  }
+
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(refreshPreviewNow, 250);
+  }
+
+  function bindPreview() {
+    htmlInput?.addEventListener("input", schedulePreview);
+    btnPreviewRefresh?.addEventListener("click", refreshPreviewNow);
+
+    btnPreviewPop?.addEventListener("click", () => {
+      const html = String(htmlInput?.value || "");
+      const win = window.open("", "_blank");
+      if (!win) return toast("Popup bị chặn 🥲", "danger");
+      win.document.open();
+      win.document.write(html || "<p>(empty)</p>");
+      win.document.close();
+    });
+
+    refreshPreviewNow();
+  }
+
+  // ===== Restore local draft quietly =====
+  function restoreLocalIfEmpty() {
+    const d = loadLocal();
+    if (!d) return;
+
+    const hasTyped =
+      (title && title.value) ||
+      (subject && subject.value) ||
+      (fromName && fromName.value) ||
+      (replyTo && replyTo.value) ||
+      (htmlInput && htmlInput.value);
+
+    if (hasTyped) return;
+
+    if (listSelect && d.list_id) listSelect.value = String(d.list_id);
+    if (title) title.value = d.title || "";
+    if (subject) subject.value = d.subject || "";
+    if (fromName) fromName.value = d.from_name || "";
+    if (replyTo) replyTo.value = d.reply_to || "";
+    if (htmlInput) htmlInput.value = d.html || "";
+    if (campaignId) campaignId.value = d.campaign_id || "";
+    if (scheduleAt) scheduleAt.value = d.schedule_at || "";
+
+    syncListLauncher();
+    refreshPreviewNow();
+
+    const t = d?._meta?.saved_at
+      ? new Date(d._meta.saved_at).toLocaleString()
+      : "unknown";
+    if (draftMeta) draftMeta.textContent = `Draft: restored from local (${t})`;
+  }
+
+  // ===== Init =====
+  async function init() {
+    bindGmail();
+    bindLists();
+    bindListModal();
+    bindCampaignUI();
+    bindPreview();
+
+    await loadGmailStatus();
+
+    try {
+      await loadLists(false);
+    } catch (e) {
+      console.error(e);
+    }
+
+    restoreLocalIfEmpty();
+  }
+
+  init();
 })();
