@@ -1,4 +1,4 @@
-// assets/js/lib.js
+// public/assets/js/lib.js
 // Shared helpers for Mailchymp pages (no hardcode host/port)
 (() => {
   const API_BASE = ""; // same-origin
@@ -94,6 +94,22 @@
     return ((n / d) * 100).toFixed(1);
   }
 
+  // ---- Topbar mini refresh (for injected topbar) ----
+  async function refreshMiniTopbar() {
+    try {
+      const me = await api("/api/auth/me");
+      const el = $("miniSession");
+      if (el) {
+        el.textContent = me?.user?.email
+          ? `Session: ${me.user.email}`
+          : "Session: none";
+      }
+    } catch {
+      const el = $("miniSession");
+      if (el) el.textContent = "Session: none";
+    }
+  }
+
   // expose to window for non-module scripts
   window.MC = {
     API_BASE,
@@ -103,6 +119,7 @@
     initToast,
     escapeHtml,
     pct,
+    refreshMiniTopbar,
   };
 
   // auto init toast once DOM ready

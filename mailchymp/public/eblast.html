@@ -6,25 +6,11 @@
     <title>Eblast – Mailchymp</title>
     <link rel="stylesheet" href="assets/css/eblast.css" />
     <link rel="stylesheet" href="assets/css/toast.css" />
+    <link rel="stylesheet" href="assets/css/topbar.css" />
   </head>
 
   <body>
-    <div class="topbar">
-      <div class="menu-left">
-        <div class="logo">M</div>
-        <nav class="menu">
-          <a href="eblast.html" class="active">Eblast</a>
-          <a href="dashboard.html">Dashboard</a>
-        </nav>
-      </div>
-      <div class="menu-right">
-        <span class="mini" id="miniSession"></span>
-        <span class="mini" id="miniGmail"></span>
-        <button class="btn small danger" id="btnLogout" type="button">
-          Logout
-        </button>
-      </div>
-    </div>
+    <div id="topbarMount"></div>
 
     <div class="wrap">
       <section class="card">
@@ -166,6 +152,10 @@
     </div>
 
     <script src="assets/js/lib.js"></script>
+    <script src="assets/js/topbar.js"></script>
+    <script>
+      injectTopbar();
+    </script>
     <script src="assets/js/eblast.js"></script>
   </body>
 </html>

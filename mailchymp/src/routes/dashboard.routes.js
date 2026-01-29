@@ -16,7 +16,7 @@ router.get("/api/dashboard/campaigns", requireAuth, async (req, res) => {
     const params = [userId];
 
     if (status) {
-      where.push("c.status=?");
+      where.push("UPPER(c.status)=?");
       params.push(status);
     }
     if (search) {
@@ -26,8 +26,10 @@ router.get("/api/dashboard/campaigns", requireAuth, async (req, res) => {
 
     const sql = `
       SELECT
-        c.id, c.title, c.subject, c.from_name, c.from_email, c.status,
+        c.id, c.title, c.subject, c.from_name, c.from_email, UPPER(c.status) AS status,
         c.scheduled_at, c.created_at, c.updated_at,
+
+        MAX(cs.sent_at) AS sent_at,
 
         COALESCE(SUM(CASE WHEN cs.status='sent' THEN 1 ELSE 0 END),0) AS sent_count,
         COALESCE(SUM(CASE WHEN cs.status='failed' THEN 1 ELSE 0 END),0) AS failed_count,

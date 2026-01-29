@@ -14,7 +14,7 @@ function startScheduler() {
       const [due] = await pool.query(
         `SELECT id, user_id, list_id
          FROM campaigns
-         WHERE status='SCHEDULED'
+         WHERE UPPER(status)='SCHEDULED'
            AND scheduled_at IS NOT NULL
            AND scheduled_at <= NOW()
          ORDER BY scheduled_at ASC
@@ -26,7 +26,7 @@ function startScheduler() {
         const [u] = await pool.query(
           `UPDATE campaigns
            SET status='SENDING'
-           WHERE id=? AND status='SCHEDULED'`,
+           WHERE id=? AND UPPER(status)='SCHEDULED'`,
           [c.id],
         );
         if (u.affectedRows === 0) continue;

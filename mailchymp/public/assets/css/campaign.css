@@ -1,0 +1,193 @@
+/* public/assets/css/campaign.css */
+/* Small, page-specific styles so it blends with existing UI */
+
+.pillrow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.pillrow .btn {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pillrow input,
+.pillrow select {
+  height: 38px;
+}
+
+/* header spacing (replaces inline styles) */
+.campHead {
+  margin-bottom: 10px;
+}
+.campTitle {
+  margin: 0;
+}
+.campNewBtn {
+  text-decoration: none;
+}
+
+.list {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.camp {
+  display: grid;
+  grid-template-columns: 1fr 120px 170px 44px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.camp:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.camp .t {
+  font-weight: 900;
+}
+.camp .s {
+  margin-top: 2px;
+}
+
+.menuWrap {
+  color: #f9fafb;
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dots {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  font-weight: 900;
+}
+.dots:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dd {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  min-width: 180px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(10, 10, 10, 0.96);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  display: none;
+  z-index: 30;
+}
+
+.dd button {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.dd button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.dd .danger {
+  color: #ff6b6b;
+}
+
+/* Optional: scheduled tag tone */
+.tag.SCHEDULED {
+  background: rgba(255, 193, 7, 0.14);
+}
+
+/* Preview modal */
+.pv-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: none;
+  z-index: 50;
+}
+
+.pv {
+  position: fixed;
+  inset: 5vh 6vw;
+  display: none;
+  z-index: 60;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 15, 15, 0.98);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+.pvHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 10px;
+}
+
+.pvTitle {
+  font-weight: 900;
+}
+
+.pvMeta {
+  margin-top: 2px;
+}
+
+.pvBody {
+  height: calc(90vh - 56px);
+  display: grid;
+  grid-template-columns: 360px 1fr;
+}
+
+.pvSide {
+  padding: 12px 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: auto;
+}
+
+.pvInfoTitle {
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.pvFrame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+#pv,
+#pv .pvHead,
+#pv .pvSide {
+  color: #f9fafb;
+}
+#pv .muted {
+  color: rgba(249, 250, 251, 0.72);
+}
+#pvInfo {
+  color: #e5e7eb !important;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

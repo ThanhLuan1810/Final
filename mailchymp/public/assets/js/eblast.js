@@ -34,16 +34,6 @@
     renderGmailStatus(st);
   }
 
-  $("btnLogout").onclick = async () => {
-    try {
-      await api("/api/auth/logout", { method: "POST" });
-      showToast("Logged out.", "ok", 1400);
-      setTimeout(() => (location.href = "compose.html"), 600);
-    } catch (e) {
-      showToast(e.message || "Logout failed", "bad", 3000);
-    }
-  };
-
   btnConnect.onclick = () => (window.location.href = "/api/gmail/connect");
   btnDisconnect.onclick = async () => {
     try {
@@ -66,6 +56,14 @@
   const scheduleMetaEl = $("scheduleMeta");
   const listSelect = $("listSelect");
   const scheduleAtEl = $("scheduleAt");
+
+  // URL params: ?campaign_id=123&mode=edit|view
+  const urlParams = new URLSearchParams(location.search || "");
+  const paramCampaignId = Number(urlParams.get("campaign_id") || 0);
+  const paramMode = String(urlParams.get("mode") || "")
+    .trim()
+    .toLowerCase();
+  let loadedCampaignStatus = ""; // DRAFT/SCHEDULED/SENT...
 
   // ===== Preview =====
   const previewFrame = $("previewFrame");
@@ -151,9 +149,82 @@
       : "";
   }
 
-  $("btnSaveDraft").onclick = () => {
-    saveDraftLocal();
-    showToast("Draft saved.", "ok", 1400);
+  async function saveDraftServer({ schedule = false } = {}) {
+    // For DRAFT/SCHEDULED edit mode
+    const p = requireFields();
+    const existing = campaignIdEl.value.trim();
+
+    if (existing) {
+      // update
+      const body = {
+        title: p.title,
+        subject: p.subject,
+        from_name: p.from_name,
+        reply_to: p.reply_to,
+        html: p.html,
+      };
+      if (schedule) {
+        const listId = listSelect.value;
+        const whenLocal = scheduleAtEl.value;
+        const iso = toIsoFromLocalInput(whenLocal);
+        if (!listId) throw new Error("Please select a list");
+        if (!whenLocal) throw new Error("Please pick schedule time");
+        if (!iso) throw new Error("Invalid schedule time");
+        if (new Date(iso).getTime() < Date.now() + 15 * 1000) {
+          throw new Error("Schedule time must be in the future");
+        }
+        body.list_id = Number(listId);
+        body.scheduled_at = iso;
+      }
+
+      await api(`/api/campaigns/${encodeURIComponent(existing)}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+      return Number(existing);
+    }
+
+    // create
+    const data = await api("/api/campaigns", {
+      method: "POST",
+      body: JSON.stringify({
+        title: p.title,
+        subject: p.subject,
+        from_name: p.from_name,
+        reply_to: p.reply_to,
+        html: p.html,
+      }),
+    });
+    campaignIdEl.value = String(data.campaign_id);
+    return data.campaign_id;
+  }
+
+  /*$("btnSaveDraft").onclick = async () => {
+    try {
+      if (paramMode === "view" || loadedCampaignStatus === "SENT") {
+        throw new Error("Campaign đã gửi: không thể lưu/sửa.");
+      }
+      const id = await saveDraftServer({ schedule: false });
+      saveDraftLocal();
+      showToast(`Saved. Campaign ID: ${id}`, "ok", 1800);
+    } catch (e) {
+      showToast(e.message || "Save draft failed", "bad", 3200);
+    }
+  };*/
+
+  $("btnSaveDraft").onclick = async () => {
+    try {
+      if (paramMode === "view" || loadedCampaignStatus === "SENT") {
+        throw new Error("Campaign đã gửi: không thể lưu/sửa.");
+      }
+      const id = await saveDraftServer({ schedule: false });
+      showToast(`Draft saved (#${id}). Creating new draft...`, "ok", 1600);
+      resetComposer({ keepList: true });
+      draftMetaEl.textContent = "Draft: new";
+      scheduleMetaEl.textContent = "";
+    } catch (e) {
+      showToast(e.message || "Save draft failed", "bad", 3200);
+    }
   };
 
   function hashDraft() {
@@ -210,6 +281,12 @@
 
     if (keepList) listSelect.value = currentList;
     lastHash = "";
+
+    // clear any ?campaign_id=... so user doesn't get stuck
+    try {
+      history.replaceState(null, "", "eblast.html");
+      loadedCampaignStatus = "";
+    } catch {}
   }
 
   $("btnNewDraft").onclick = () => {
@@ -294,22 +371,10 @@
     const existing = campaignIdEl.value.trim();
     if (existing) return Number(existing);
 
-    const p = requireFields();
-    const data = await api("/api/campaigns", {
-      method: "POST",
-      body: JSON.stringify({
-        title: p.title,
-        subject: p.subject,
-        from_name: p.from_name,
-        reply_to: p.reply_to,
-        html: p.html,
-      }),
-    });
-
-    campaignIdEl.value = String(data.campaign_id);
-    showToast(`Created campaign ID: ${data.campaign_id}`, "ok", 2500);
+    const id = await saveDraftServer({ schedule: false });
+    showToast(`Created campaign ID: ${id}`, "ok", 2500);
     saveDraftLocal();
-    return data.campaign_id;
+    return id;
   }
 
   $("btnCreateCampaign").onclick = async () => {
@@ -373,8 +438,10 @@
         throw new Error("Schedule time must be in the future");
       }
 
-      const campaignId = await createCampaignIfNeeded();
+      // Prefer single-source-of-truth: update campaign to SCHEDULED via PUT
+      const campaignId = await saveDraftServer({ schedule: true });
 
+      // Keep old endpoint for backward compatibility
       const resp = await api("/api/campaigns/schedule", {
         method: "POST",
         body: JSON.stringify({
@@ -417,5 +484,73 @@
     setDefaultScheduleTime();
     await refreshMini();
     await loadLists();
+
+    // If opened from Campaigns page, load campaign from DB
+    if (paramCampaignId) {
+      try {
+        const r = await api(
+          `/api/campaigns/${encodeURIComponent(paramCampaignId)}`,
+        );
+        const c = r.campaign;
+        loadedCampaignStatus = String(c.status || "").toUpperCase();
+
+        titleEl.value = c.title || "";
+        subjectEl.value = c.subject || "";
+        fromNameEl.value = c.from_name || "";
+        replyToEl.value = c.reply_to || "";
+        htmlEl.value = c.html || "";
+        campaignIdEl.value = String(c.id || "");
+
+        if (c.list_id) listSelect.value = String(c.list_id);
+        if (c.scheduled_at) {
+          const d = new Date(c.scheduled_at);
+          if (!isNaN(d.getTime())) {
+            const pad = (n) => String(n).padStart(2, "0");
+            scheduleAtEl.value =
+              d.getFullYear() +
+              "-" +
+              pad(d.getMonth() + 1) +
+              "-" +
+              pad(d.getDate()) +
+              "T" +
+              pad(d.getHours()) +
+              ":" +
+              pad(d.getMinutes());
+          }
+        }
+
+        draftMetaEl.textContent = `Loaded campaign #${c.id} (${loadedCampaignStatus})`;
+        scheduleMetaEl.textContent = c.scheduled_at
+          ? `Scheduled at: ${formatLocalDatetime(c.scheduled_at)}`
+          : "";
+        refreshPreview();
+
+        const viewOnly =
+          paramMode === "view" || loadedCampaignStatus === "SENT";
+        if (viewOnly) {
+          [
+            titleEl,
+            subjectEl,
+            fromNameEl,
+            replyToEl,
+            htmlEl,
+            listSelect,
+            scheduleAtEl,
+          ].forEach((el) => (el.disabled = true));
+          $("btnSaveDraft").disabled = true;
+          $("btnCreateCampaign").disabled = true;
+          $("btnSendNow").disabled = true;
+          $("btnSchedule").disabled = true;
+          $("btnNewDraft").disabled = false;
+          showToast(
+            "Campaign đã gửi: chỉ xem preview (không sửa).",
+            "ok",
+            2200,
+          );
+        }
+      } catch (e) {
+        showToast(e.message || "Load campaign failed", "bad", 3200);
+      }
+    }
   });
 })();

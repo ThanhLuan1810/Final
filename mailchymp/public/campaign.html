@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Campaigns – Mailchymp</title>
+
+    <link rel="stylesheet" href="assets/css/dashboard.css" />
+    <link rel="stylesheet" href="assets/css/toast.css" />
+    <link rel="stylesheet" href="assets/css/campaign.css" />
+    <link rel="stylesheet" href="assets/css/topbar.css" />
+  </head>
+
+  <body>
+    <div id="topbarMount"></div>
+
+    <div class="wrap">
+      <section class="card">
+        <div class="rowActions spaceBetween campHead">
+          <h2 class="campTitle">Campaigns</h2>
+          <a class="btn campNewBtn" href="eblast.html">+ New</a>
+        </div>
+
+        <div class="pillrow">
+          <div>
+            <label>Search</label>
+            <input id="q" placeholder="title / subject / from..." />
+          </div>
+
+          <div>
+            <label>Status</label>
+            <select id="status">
+              <option value="">All</option>
+              <option>DRAFT</option>
+              <option>SCHEDULED</option>
+              <option>SENT</option>
+              <option>SENDING</option>
+              <option>FAILED</option>
+            </select>
+          </div>
+
+          <div>
+            <button class="btn w100" id="btnRefresh" type="button">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div id="list" class="list"></div>
+      </section>
+    </div>
+
+    <!-- Preview modal -->
+    <div id="pvBackdrop" class="pv-backdrop"></div>
+    <div id="pv" class="pv">
+      <div class="pvHead">
+        <div>
+          <div id="pvTitle" class="pvTitle">Preview</div>
+          <div id="pvMeta" class="muted pvMeta"></div>
+        </div>
+        <div class="rowActions">
+          <button class="btn" id="pvEdit" type="button" style="display: none">
+            Mở để sửa
+          </button>
+          <button class="btn" id="pvDup" type="button" style="display: none">
+            Duplicate
+          </button>
+          <button
+            class="btn danger"
+            id="pvCancel"
+            type="button"
+            style="display: none"
+          >
+            Cancel schedule
+          </button>
+          <button class="btn" id="pvClose" type="button">Đóng</button>
+        </div>
+      </div>
+
+      <div class="pvBody">
+        <div class="pvSide">
+          <div class="pvInfoTitle">Thông tin</div>
+          <div id="pvInfo" class="mono pre"></div>
+        </div>
+
+        <iframe
+          id="pvFrame"
+          class="pvFrame"
+          sandbox="allow-same-origin"
+        ></iframe>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite">
+      <div class="r">
+        <div id="toastText"></div>
+        <button class="x" id="toastX" type="button">×</button>
+      </div>
+    </div>
+
+    <script src="assets/js/lib.js"></script>
+    <script src="assets/js/topbar.js"></script>
+    <script>
+      injectTopbar();
+    </script>
+    <script src="assets/js/campaign.js"></script>
+  </body>
+</html>

@@ -158,6 +158,7 @@ input:focus {
   font-size: 13px;
   color: var(--muted);
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .googleWrap {

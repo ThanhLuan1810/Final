@@ -12,27 +12,15 @@
     return me.user;
   }
 
-  $("btnLogout").onclick = async () => {
-    try {
-      await api("/api/auth/logout", { method: "POST" });
-      showToast("Logged out.", "ok", 1400);
-      setTimeout(() => (location.href = "compose.html"), 600);
-    } catch (e) {
-      showToast(e.message || "Logout failed", "bad", 3000);
-    }
-  };
-
   const tbody = $("tbody");
   const qEl = $("q");
-  const statusEl = $("status");
 
   let currentCampaignId = null;
 
   async function loadCampaigns() {
     const q = encodeURIComponent(qEl.value.trim());
-    const st = encodeURIComponent(statusEl.value.trim());
     const res = await api(
-      `/api/dashboard/campaigns?search=${q}&status=${st}&limit=80&offset=0`,
+      `/api/dashboard/campaigns?search=${q}&status=SENT&limit=80&offset=0`,
     );
 
     tbody.innerHTML = "";
@@ -42,9 +30,7 @@
       const openedU = Number(c.opened_unique || 0);
       const clickedU = Number(c.clicked_unique || 0);
 
-      const scheduleText = c.scheduled_at
-        ? new Date(c.scheduled_at).toLocaleString()
-        : "-";
+      const sentAtText = c.sent_at ? new Date(c.sent_at).toLocaleString() : "-";
 
       const tr = document.createElement("tr");
       tr.style.cursor = "pointer";
@@ -54,7 +40,6 @@
           <div style="font-weight:900">${escapeHtml(c.title || "")}</div>
           <div class="muted">${escapeHtml(c.subject || "")}</div>
         </td>
-        <td><span class="tag ${c.status}">${c.status}</span></td>
         <td>
           <div><b>${sent}</b> sent</div>
           <div class="muted">${failed} failed</div>
@@ -67,7 +52,7 @@
           <div><b>${clickedU}</b> unique</div>
           <div class="muted">${pct(clickedU, sent)}%</div>
         </td>
-        <td class="muted">${scheduleText}</td>
+        <td class="muted">${sentAtText}</td>
         <td class="muted">${c.updated_at ? new Date(c.updated_at).toLocaleString() : "-"}</td>
       `;
       tr.onclick = () => loadDetail(c.id);
@@ -86,8 +71,6 @@
   const kOpenRate = $("kOpenRate");
   const kClickedU = $("kClickedU");
   const kClickRate = $("kClickRate");
-
-  const btnCancelThis = $("btnCancelThis");
 
   async function loadDetail(id) {
     try {
@@ -109,9 +92,6 @@
       kOpenRate.textContent = pct(openedU, sent) + "%";
       kClickedU.textContent = clickedU;
       kClickRate.textContent = pct(clickedU, sent) + "%";
-
-      btnCancelThis.style.display =
-        res.campaign?.status === "SCHEDULED" ? "inline-block" : "none";
 
       campInfo.textContent = JSON.stringify(
         {
@@ -151,23 +131,6 @@
       showToast(e.message || "Load detail failed", "bad", 3000);
     }
   }
-
-  btnCancelThis.onclick = async () => {
-    try {
-      if (!currentCampaignId) return;
-
-      await api("/api/campaigns/cancel", {
-        method: "POST",
-        body: JSON.stringify({ campaign_id: currentCampaignId }),
-      });
-
-      showToast("Cancelled schedule.", "ok", 2000);
-      await loadCampaigns();
-      await loadDetail(currentCampaignId);
-    } catch (e) {
-      showToast(e.message || "Cancel failed", "bad", 3000);
-    }
-  };
 
   $("btnRefresh").onclick = () => loadCampaigns();
 

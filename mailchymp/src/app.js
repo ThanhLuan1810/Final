@@ -41,7 +41,7 @@ app.use(
 // remember-me before routes
 app.use(rememberMeMiddleware);
 
-// 🔎 Debug log for all /api requests (helps when "terminal has no errors")
+// Debug log for all /api requests
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/")) {
     console.log("[API]", req.method, req.path, "user:", req.session?.user?.id);
